@@ -1,6 +1,7 @@
 import urllib3
 import os
 from errors import StatusError
+from log import log
 
 
 class Downloader:
@@ -27,24 +28,24 @@ class Downloader:
             r.release_conn()
             return True
         except StatusError as statusError:
-            print(f'Response returned status {statusError.status} for {storagePath}')
-            print(statusError.body)
+            log(f'Response returned status {statusError.status} for {storagePath}')
+            log(statusError.body)
             return False # self.handleRetry(remoteUrl, storagePath, referer)
         except urllib3.exceptions.HTTPError as e:
-            print(f'Frag response error {storagePath}')
-            print(str(e))
+            log(f'Frag response error {storagePath}')
+            log(str(e))
             return False # self.handleRetry(remoteUrl, storagePath, referer)
         except Exception as e:
-            print(f'Error downloading Frag {storagePath}')
-            print(str(e))
+            log(f'Error downloading Frag {storagePath}')
+            log(str(e))
             return False
 
     def handleRetry(self, remoteUrl, storagePath, referer):
         if remoteUrl in self.retryMap and self.retryMap[remoteUrl] >= self.fragRetryMax:
-            print(f'Max retry exceeded for frag {storagePath}')
+            log(f'Max retry exceeded for frag {storagePath}')
             return False
         else:
-            print('Retrying...')
+            log('Retrying...')
             if remoteUrl not in self.retryMap:
                 self.retryMap[remoteUrl] = 0
             self.retryMap[remoteUrl] += 1

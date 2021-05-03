@@ -1,5 +1,6 @@
 from threading import Timer
 import time
+from log import log
 
 class RepeatedTimer(object):
     def __init__(self, function, onStop, interval, durationSeconds):
@@ -35,7 +36,7 @@ class RepeatedTimer(object):
             self.is_running = True
 
     def stop(self):
-        print('timer stop fn')
+        log('timer stop fn')
         self._timer.cancel()
         self.is_running = False
         self.onStop()

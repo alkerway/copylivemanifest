@@ -1,2 +1,2 @@
 def log(*args):
-    print(args)
+    print(*args, flush=True)

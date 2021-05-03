@@ -18,7 +18,7 @@ RECORDING_TIME = 6
 
 urlInput = input('Enter Manifest Url: ')
 if not urlInput:
-    urlInput = 'http://cdn.maskamr.xyz/live/NBA5/chunks.m3u8'
+    urlInput = 'https://ngx.cr5.streamzilla.xlcdn.com/session/7bedc86bc272632813c34db64b3800b2/sz/streamdays/wowza4/live/bognor-pier/chunklist.m3u8'
 referer = input('Enter Referer (optional): ')
 recordTime = input('Input Recording time in hours (default 6): ')
 if recordTime:
@@ -29,7 +29,7 @@ if input('Log to file? '):
 stopAfter = 60 * 60 * RECORDING_TIME
 
 POLL_INTERVAL = 3
-MAX_LEVEL_ERROR = 10
+MAX_LEVEL_ERROR = 3
 
 isFirstParse = True
 levelErrorCount = 0
@@ -48,7 +48,7 @@ def requestLevel():
     if fatalErrorState or startRequestCount > finishRequestCount + 1:
         return
     
-    log(f'Poll {startRequestCount} start')
+    # log(f'Poll {startRequestCount} start')
     startRequestCount += 1
     try:
         headers = None
@@ -59,28 +59,26 @@ def requestLevel():
         if manifestRequest.status >= 400:
             raise StatusError(manifestRequest.status, manifestText, manifestRequest.reason)
     except StatusError as err:
-        print('StatusError requesting level', err)
+        log('StatusError requesting level', err)
         incrementLevelError()
     except NotManifestError:
-        print('Level request returned not manifest')
+        log('Level request returned not manifest')
         cancelTimer()
     except urllib3.exceptions.HTTPError as err:
-        print(f'HTTP error requesting Level Manifest: {str(err)}')
+        log(f'HTTP error requesting Level Manifest: {str(err)}')
         incrementLevelError()
         property_names=[p for p in dir(err) if isinstance(getattr(err,p),property)]
-        print(property_names)
+        log(property_names)
     except Exception as err:
-        print('Unknown Error', str(err))
+        log('Unknown Error', str(err))
     else:
         if not fatalErrorState:
-            print(f'Poll {finishRequestCount} handling text')
+            # log(f'Poll {finishRequestCount+ 1} handling text')
             handleLevelManifestText(manifestText, levelUrl, referer)
             levelErrorCount = 0
 
     finishRequestCount += 1
-    print(f'Poll {finishRequestCount} done')
-    print()
-    sys.stdout.flush()
+    # log(f'Poll {finishRequestCount} done')
 
 
 def handleLevelManifestText(manifestText, levelUrl, referer):
@@ -116,14 +114,14 @@ def incrementLevelError():
     global fatalErrorState
     levelErrorCount += 1
     if levelErrorCount > MAX_LEVEL_ERROR:
-        print('Errors exceeded max, stopping')
+        log('Errors exceeded max, stopping')
         fatalErrorState = True
         cancelTimer()
 
 def formatDownloadedVideo():
     outputFormat = 'mkv'
-    print('\n\n')
-    print('=============Starting Fomat================')
+    log('\n\n')
+    log('=============Starting Fomat================')
     inputPath = outDir + '/level.m3u8'
     ffmpegCommand = ['ffmpeg',
                      '-v',
@@ -140,11 +138,10 @@ def formatDownloadedVideo():
                      outDir + '/video.' + outputFormat
                      ]
     subprocess.call(ffmpegCommand)
-    print(' '.join(ffmpegCommand))
+    log(' '.join(ffmpegCommand))
 
 def afterStop():
     formatDownloadedVideo()
-    sys.stdout.flush()
     sys.exit()
 
 def onStop():

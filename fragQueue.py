@@ -1,4 +1,5 @@
 from downloader import Downloader
+from log import log
 
 downloader = Downloader()
 MAX_STALL_COUNT = 30
@@ -12,6 +13,7 @@ class FragQueue:
         self.finishCallback = finishCallback
         self.wrapUpAndFinish = False
         self.idxOffset = 0
+        self.manifestLength = 0
         self.referer = ''
         self.stallCount = 0
 
@@ -24,17 +26,17 @@ class FragQueue:
         for frag in fragArr:
             if frag['idx'] > lastIdx:
                 newFrags.append(frag)
-                print(f'Frag {frag["idx"] - self.idxOffset} added to queue')
+                log(f'Frag {frag["idx"] - self.idxOffset} added to queue')
 
         self.frags += newFrags
         if len(self.frags):
             self.lastQueueIdx = self.frags[-1]['idx']
 
         if not len(newFrags):
-            print('Level stall increment')
+            log('Level stall increment')
             self.stallCount += 1
             if self.stallCount > MAX_STALL_COUNT:
-                print('Level stall exceeded max stall, stopping')
+                log('Level stall exceeded max stall, stopping')
                 self.wrapUpAndFinish = True
                 self.wrapUpLevel()
         else:
@@ -42,14 +44,14 @@ class FragQueue:
 
         # Download new frags
         for frag in newFrags:
-            print(f'Frag {frag["idx"] - self.idxOffset} starting download')
+            # log(f'Frag {frag["idx"] - self.idxOffset} starting download')
             success = downloader.downloadFrag(frag['remoteUrl'], f'{self.outDir}/{frag["storagePath"]}', self.referer)
             if success:
-                print(f'Frag {frag["idx"] - self.idxOffset} downloaded')
+                log(f'Frag {frag["idx"] - self.idxOffset} downloaded')
                 frag['downloaded'] = True
                 self.onFinish(frag)
             else:
-                print('figure this out, frag not downloaded')
+                log('figure this out, frag not downloaded')
 
 
     def peek(self):
@@ -66,7 +68,9 @@ class FragQueue:
                 newManifestLines = newManifestLines + curFrag['tagLines']
                 newManifestLines.append(curFrag["storagePath"])
                 self.lastDownloadedIdx = curFrag['idx']
-                print(f'Frag {self.lastDownloadedIdx - self.idxOffset} writing to manifest')
+                fragLen = float(curFrag['tags']['#EXTINF'].strip(','))
+                self.manifestLength += fragLen
+                log(f'Frag {self.lastDownloadedIdx - self.idxOffset} writing to manifest ({round(self.manifestLength / 60, 1)} min)')
                 self.frags.pop(0)
                 curFrag = self.peek()
             self.addLinesToLevel(newManifestLines)
@@ -81,13 +85,13 @@ class FragQueue:
             levelFile.write('\n')
 
     def wrapUpLevel(self):
-        print('Last frag downloaded, finishing up')
+        log('Last frag downloaded, finishing up')
         self.addLinesToLevel(['#EXT-X-ENDLIST', ''])
         self.finishCallback()
 
     def finishAndStop(self, isBecauseError):
         self.wrapUpAndFinish = True
-        print('finishAndStop', len(self.frags), isBecauseError)
+        log('finishAndStop', len(self.frags), isBecauseError)
         if len(self.frags) == 0 or isBecauseError:
             self.wrapUpLevel()
 
