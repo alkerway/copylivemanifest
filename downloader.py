@@ -17,28 +17,24 @@ class Downloader:
             headers = None
             if referer:
                 headers = {'Referer': referer, 'Origin': referer}
-
-            chunk_size = 56384
-            r = self.http.request('GET', remoteUrl, preload_content=False, headers=headers, timeout=20)
+            r = self.http.request('GET', remoteUrl, preload_content=False, headers=headers, timeout=15)
             if r.status >= 400:
                 raise StatusError(r.status, r.data.decode("utf-8"), r.reason)
+            chunk_size = 56384
             with open(storagePath, 'wb') as out:
                 for chunk in r.stream(chunk_size):
                     out.write(chunk)
             r.release_conn()
             return True
         except StatusError as statusError:
-            print('\n')
             print(f'Response returned status {statusError.status} for {storagePath}')
             print(statusError.body)
-            return self.handleRetry(remoteUrl, storagePath, referer)
+            return False # self.handleRetry(remoteUrl, storagePath, referer)
         except urllib3.exceptions.HTTPError as e:
-            print('\n')
             print(f'Frag response error {storagePath}')
             print(str(e))
-            return self.handleRetry(remoteUrl, storagePath, referer)
+            return False # self.handleRetry(remoteUrl, storagePath, referer)
         except Exception as e:
-            print('\n')
             print(f'Error downloading Frag {storagePath}')
             print(str(e))
             return False

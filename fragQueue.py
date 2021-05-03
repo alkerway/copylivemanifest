@@ -1,16 +1,19 @@
 from downloader import Downloader
 
 downloader = Downloader()
-
+MAX_STALL_COUNT = 30
 
 class FragQueue:
-    def __init__(self, outDir):
+    def __init__(self, outDir, finishCallback):
         self.lastQueueIdx = -1
         self.lastDownloadedIdx = -1
         self.frags = []
         self.outDir = outDir
-        self.finishCallback = None
+        self.finishCallback = finishCallback
+        self.wrapUpAndFinish = False
         self.idxOffset = 0
+        self.referer = ''
+        self.stallCount = 0
 
         # clear level file
         open(self.outDir + '/level.m3u8', 'w').close()
@@ -27,9 +30,20 @@ class FragQueue:
         if len(self.frags):
             self.lastQueueIdx = self.frags[-1]['idx']
 
+        if not len(newFrags):
+            print('Level stall increment')
+            self.stallCount += 1
+            if self.stallCount > MAX_STALL_COUNT:
+                print('Level stall exceeded max stall, stopping')
+                self.wrapUpAndFinish = True
+                self.wrapUpLevel()
+        else:
+            self.stallCount = 0
+
         # Download new frags
         for frag in newFrags:
-            success = downloader.downloadFrag(frag['remoteUrl'], f'{self.outDir}/{frag["storagePath"]}')
+            print(f'Frag {frag["idx"] - self.idxOffset} starting download')
+            success = downloader.downloadFrag(frag['remoteUrl'], f'{self.outDir}/{frag["storagePath"]}', self.referer)
             if success:
                 print(f'Frag {frag["idx"] - self.idxOffset} downloaded')
                 frag['downloaded'] = True
@@ -56,10 +70,10 @@ class FragQueue:
                 self.frags.pop(0)
                 curFrag = self.peek()
             self.addLinesToLevel(newManifestLines)
-            if self.finishCallback and not curFrag:
-                self.wrapUpLevel()
         else:
             pass
+        if self.wrapUpAndFinish and len(self.frags) == 0:
+            self.wrapUpLevel()
 
     def addLinesToLevel(self, newManifestLines):
         with open(self.outDir + '/level.m3u8', 'a') as levelFile:
@@ -71,10 +85,14 @@ class FragQueue:
         self.addLinesToLevel(['#EXT-X-ENDLIST', ''])
         self.finishCallback()
 
-    def finishAndStop(self, callback):
-        self.finishCallback = callback
-        if len(self.frags) == 0:
+    def finishAndStop(self, isBecauseError):
+        self.wrapUpAndFinish = True
+        print('finishAndStop', len(self.frags), isBecauseError)
+        if len(self.frags) == 0 or isBecauseError:
             self.wrapUpLevel()
 
     def setIdxOffset(self, offset):
         self.idxOffset = offset
+
+    def setReferer(self, referer):
+        self.referer = referer
