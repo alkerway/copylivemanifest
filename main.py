@@ -29,7 +29,7 @@ if input('Log to file? '):
 stopAfter = 60 * 60 * RECORDING_TIME
 
 POLL_INTERVAL = 3
-MAX_LEVEL_ERROR = 3
+MAX_LEVEL_ERROR = 15
 
 isFirstParse = True
 levelErrorCount = 0
@@ -105,6 +105,15 @@ def handleLevelManifestText(manifestText, levelUrl, referer):
         remoteFrags = [remoteFrags[-1]]
         fragQueue.setReferer(referer)
         fragQueue.setIdxOffset(lastFrag['idx'])
+    else:
+        firstFrag = remoteFrags[0]
+        if '#EXTM3U' in firstFrag['tagLines']:
+            manifestHeaderLines = ['#EXTM3U', '#EXT-X-VERSION:', '#EXT-X-TARGETDURATION', '#EXT-X-MEDIA-SEQUENCE']
+            for line in manifestHeaderLines:
+                for tag in firstFrag['tagLines']:
+                    if line in tag:
+                        firstFrag['tagLines'].remove(tag)
+            firstFrag['tagLines'].insert(0, '#EXT-X-DISCONTINUITY')
 
     fragQueue.add(remoteFrags)
 

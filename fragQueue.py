@@ -1,8 +1,10 @@
+import threading
+
 from downloader import Downloader
 from log import log
 
 downloader = Downloader()
-MAX_STALL_COUNT = 30
+MAX_STALL_COUNT = 15
 
 class FragQueue:
     def __init__(self, outDir, finishCallback):
@@ -26,7 +28,7 @@ class FragQueue:
         for frag in fragArr:
             if frag['idx'] > lastIdx:
                 newFrags.append(frag)
-                log(f'Frag {frag["idx"] - self.idxOffset} added to queue')
+                log(f'Frag {frag["idx"] - self.idxOffset} added to queue, {threading.active_count()} threads active')
 
         self.frags += newFrags
         if len(self.frags):
@@ -61,9 +63,11 @@ class FragQueue:
             return None
 
     def onFinish(self, frag):
-        if frag['idx'] == self.lastDownloadedIdx + 1 or self.lastDownloadedIdx == -1:
-            newManifestLines = []
+        if self.frags[0]['idx'] == frag['idx'] or self.lastDownloadedIdx == -1:
             curFrag = self.peek()
+            if frag['idx'] != self.lastDownloadedIdx + 1 and self.lastDownloadedIdx > -1:
+                log(f'!!! Missing frags {self.lastDownloadedIdx + 1 - self.idxOffset} to {curFrag["idx"] - self.idxOffset - 1}')
+            newManifestLines = []
             while curFrag and curFrag['downloaded'] == True:
                 newManifestLines = newManifestLines + curFrag['tagLines']
                 newManifestLines.append(curFrag["storagePath"])

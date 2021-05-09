@@ -42,7 +42,7 @@ class Parser:
                     storagePath = line.split('?')[0].split('/')[-1]
                 else:
                     storagePath = '-'.join(line.split('?')[0].split('/'))
-                    urlWithoutEnd = os.path.dirname(manifestUrl)
+                    urlWithoutEnd = os.path.dirname(manifestUrl.split('?')[0])
                     fullUrl = urlWithoutEnd + '/' + line
                 frags.append({
                     'storagePath': fragStorageBase + '/' + storagePath,
