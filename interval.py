@@ -36,7 +36,6 @@ class RepeatedTimer(object):
             self.is_running = True
 
     def stop(self):
-        log('timer stop fn')
         self._timer.cancel()
         self.is_running = False
         self.onStop()

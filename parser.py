@@ -44,11 +44,15 @@ class Parser:
                     storagePath = '-'.join(line.split('?')[0].split('/'))
                     urlWithoutEnd = os.path.dirname(manifestUrl.split('?')[0])
                     fullUrl = urlWithoutEnd + '/' + line
+                fragLen = None
+                if '#EXTINF' in currentTags:
+                    fragLen = float(currentTags['#EXTINF'].strip(','))
                 frags.append({
                     'storagePath': fragStorageBase + '/' + storagePath,
                     'remoteUrl': fullUrl,
                     'tags': currentTags,
                     'tagLines': currentTagLines,
+                    'fragLen': fragLen,
                     'idx': currentFragNumber,
                     'downloaded': False
                 })

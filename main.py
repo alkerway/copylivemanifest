@@ -18,17 +18,17 @@ RECORDING_TIME = 6
 
 urlInput = input('Enter Manifest Url: ')
 if not urlInput:
-    urlInput = 'https://ngx.cr5.streamzilla.xlcdn.com/session/7bedc86bc272632813c34db64b3800b2/sz/streamdays/wowza4/live/bognor-pier/chunklist.m3u8'
+    urlInput = 'http://localhost:8880/remote/level.m3u8?url=https://test-streams.mux.dev/x36xhzz/url_0/193039199_mp4_h264_aac_hd_7.m3u8'
 referer = input('Enter Referer (optional): ')
 recordTime = input('Input Recording time in hours (default 6): ')
 if recordTime:
     RECORDING_TIME = float(recordTime)
-if input('Log to file? '):
-    sys.stdout = open('./python-output.txt', 'w+')
+# if not input('Log to file? '):
+sys.stdout = open('./python-output.txt', 'w+')
 
 stopAfter = 60 * 60 * RECORDING_TIME
 
-POLL_INTERVAL = 3
+POLL_INTERVAL = 4
 MAX_LEVEL_ERROR = 15
 
 isFirstParse = True
@@ -45,7 +45,7 @@ def requestLevel():
     global fatalErrorState
     levelUrl = urlInput
 
-    if fatalErrorState or startRequestCount > finishRequestCount + 1:
+    if fatalErrorState:
         return
     
     # log(f'Poll {startRequestCount} start')
@@ -113,7 +113,6 @@ def handleLevelManifestText(manifestText, levelUrl, referer):
                 for tag in firstFrag['tagLines']:
                     if line in tag:
                         firstFrag['tagLines'].remove(tag)
-            firstFrag['tagLines'].insert(0, '#EXT-X-DISCONTINUITY')
 
     fragQueue.add(remoteFrags)
 
@@ -154,13 +153,13 @@ def afterStop():
     sys.exit()
 
 def onStop():
-    global fatalErrorState
-    fragQueue.finishAndStop(fatalErrorState)
+    fragQueue.finishAndStop()
 
 
 def cancelTimer():
     k.stop()
 
-fragQueue = FragQueue(outDir, afterStop)
+fragQueue = FragQueue(outDir, afterStop, cancelTimer)
 
+requestLevel()
 k = RepeatedTimer(requestLevel, onStop, POLL_INTERVAL, stopAfter)
