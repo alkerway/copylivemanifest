@@ -19,7 +19,7 @@ class Downloader:
             headers = None
             if referer:
                 headers = {'Referer': referer, 'Origin': referer}
-            chunk_size = 56384
+            chunk_size = 100000
             async with session.get(remoteUrl, headers=headers, raise_for_status=True, timeout=timeoutLen) as fragResponse:
                 with open(storagePath, 'wb') as out:
                     while True:

@@ -54,7 +54,7 @@ class FragQueue:
 
     async def handleNewFrags(self, newFrags):
         results = None
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(auto_decompress=False) as session:
             fragDownloads = []
             for frag in newFrags:
                 task = asyncio.ensure_future(downloader.downloadFrag(session, frag['remoteUrl'], f'{self.outDir}/{frag["storagePath"]}', self.referer, frag['fragLen']))
@@ -86,7 +86,7 @@ class FragQueue:
             return None
 
     def onDownloaded(self, frag):
-        if self.frags[0]['downloaded']:
+        if self.frags[0]['downloaded'] and self.lastDownloadedIdx != frag['idx']:
             curFrag = self.peek()
             if frag['idx'] != self.lastDownloadedIdx + 1 and self.lastDownloadedIdx > -1:
                 self.frags[0]['tagLines'].insert(0, '#EXT-X-DISCONTINUITY')
