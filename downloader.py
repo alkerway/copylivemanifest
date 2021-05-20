@@ -1,5 +1,5 @@
 import asyncio
-import aiohttp
+import httpx
 import os
 from errors import StatusError
 from log import log
@@ -19,22 +19,20 @@ class Downloader:
             headers = None
             if referer:
                 headers = {'Referer': referer, 'Origin': referer}
-            chunk_size = 100000
-            async with session.get(remoteUrl, headers=headers, raise_for_status=True, timeout=timeoutLen) as fragResponse:
+            async with session.stream('GET', remoteUrl, headers=headers, timeout=timeoutLen) as fragResponse:
+                fragResponse.raise_for_status()
                 with open(storagePath, 'wb') as out:
-                    while True:
-                        chunk = await fragResponse.content.read(chunk_size)
+                    async for chunk in fragResponse.aiter_bytes():
                         if not chunk:
                             break
                         out.write(chunk)
             return True
-        except aiohttp.ClientResponseError as statusError:
-            log(f'Response returned status {statusError.status} for {storagePath}')
-            log(statusError.message)
+        except httpx.HTTPStatusError as exc:
+            log(f'Response returned status {exc.response.status_code} for {storagePath}')
             return await self.handleRetry(session, remoteUrl, storagePath, referer, fragLen)
-        except aiohttp.TimeoutError as timeoutError:
+        except httpx.TimeoutException as timeoutError:
             log(f'Response timed out for {storagePath}')
-            log(statusError.message)
+            log(timeoutError)
             return await self.handleRetry(session, remoteUrl, storagePath, referer, fragLen)
         except Exception as e:
             log(f'Error downloading Frag {storagePath}')

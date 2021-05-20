@@ -1,6 +1,6 @@
 import threading
 import asyncio
-import aiohttp
+import httpx
 
 from downloader import Downloader
 from log import log
@@ -54,7 +54,7 @@ class FragQueue:
 
     async def handleNewFrags(self, newFrags):
         results = None
-        async with aiohttp.ClientSession(auto_decompress=False) as session:
+        async with httpx.AsyncClient() as session:
             fragDownloads = []
             for frag in newFrags:
                 task = asyncio.ensure_future(downloader.downloadFrag(session, frag['remoteUrl'], f'{self.outDir}/{frag["storagePath"]}', self.referer, frag['fragLen']))
